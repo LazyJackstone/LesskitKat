@@ -93,6 +93,7 @@ def reflexes() :
             if message.getContent()[0] == "Attack Enemy Base" :
                 actionWarRocketLauncher.nextState = TravelToEnemyBaseState
                 memory["EnemyBaseAngleFromBase"] = float(message.getContent()[1])#*
+                print (memory["EnemyBaseAngleFromBase"])
                 memory["EnemyBaseDistanceFromBase"] = float(message.getContent()[2])#*
                 memory["EnemyBaseID"] = message.getContent()[3]
                 actionWarRocketLauncher.nextState= TravelToEnemyBaseState
@@ -152,7 +153,9 @@ def determinateAttacksAngle(anglePercept, distancePercept, angleMessage, distanc
     vectorCoord2 = calculateCoord(angleMessage, distanceMessage)
     vectorResult = [vectorCoord1[0] + vectorCoord2[0], vectorCoord1[1] + vectorCoord2[1]]
     distance = math.sqrt(vectorResult[0]**2 + vectorResult[1]**2)
-    angle = math.degrees(math.atan2(vectorResult[1], vectorResult[0]))
+    angleRadian = math.atan2(vectorResult[1], vectorResult[0])
+    angle = math.degrees(angleRadian)
+
     return [angle, distance]
 
 """

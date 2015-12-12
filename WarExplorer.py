@@ -1,6 +1,4 @@
-# TODO ADD send message when food found
-# TODO ADD select closest food
-# TODO ADD send when bag full where to find food
+#TODO : memoriser position nourriture non ramassee ???
 
 import math
 class SearchFoodState(object):
@@ -189,7 +187,7 @@ def determinateAttacksAngle(anglePercept, distancePercept, angleMessage, distanc
     vectorCoord1 = calculateCoord(anglePercept, distancePercept)
     vectorCoord2 = calculateCoord(angleMessage, distanceMessage)
     vectorResult = [vectorCoord1[0] + vectorCoord2[0], vectorCoord1[1] + vectorCoord2[1]]
-    distance = math.sqrt(vectorResult[0]**2 + vectorResult[1]**2) # TODO: Vérifier le calcul surement faux
+    distance = math.sqrt(distancePercept**2 + distanceMessage**2)
     angle = math.degrees(math.atan2(vectorResult[1], vectorResult[0]))
 
     return [angle, distance]
