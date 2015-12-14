@@ -1,4 +1,5 @@
 import math
+#TODO: Finir la communication Group : Ordre Base ne peut être interrompu/ Request explorer possiblement interuptible.
 class SearchFoeState(object):
     @staticmethod
     def execute():
@@ -16,20 +17,15 @@ class SearchFoeState(object):
 
             if selectedPercept is not None:
                 followTarget(selectedPercept)
-                #setHeading(selectedPercept.getAngle())
                 if isReloaded():
                     actionWarRocketLauncher.nextState = FiringState
-                    #memory["nextState"]= FiringState
                 else :
                     actionWarRocketLauncher.nextState = ReloadingState
-                    #memory["nextState"]= ReloadingState
             else:
                 actionWarRocketLauncher.nextState = SearchFoeState
-                #memory["nextState"]= SearchFoeState
                 setRandomHeading(25)
         else:
             actionWarRocketLauncher.nextState = SearchFoeState
-            #memory["nextState"]= SearchFoeState
             setRandomHeading(25)
 
         return move()
@@ -39,7 +35,6 @@ class FiringState(object):
     def execute():
         setDebugString("Firing State")
         actionWarRocketLauncher.nextState = ReloadingState
-        #memory["nextState"]= ReloadingState
         return fire()
 
 class ReloadingState(object):
@@ -48,10 +43,8 @@ class ReloadingState(object):
         setDebugString("Reloading State")
         if isReloaded():
             actionWarRocketLauncher.nextState = SearchFoeState
-            #memory["nextState"]= SearchFoeState
         else:
             actionWarRocketLauncher.nextState = ReloadingState
-            #memory["nextState"]= ReloadingState
 
         return reloadWeapon()
 
@@ -93,22 +86,23 @@ def reflexes() :
             if message.getContent()[0] == "Attack Enemy Base" :
                 actionWarRocketLauncher.nextState = TravelToEnemyBaseState
                 memory["EnemyBaseAngleFromBase"] = float(message.getContent()[1])#*
-                print (memory["EnemyBaseAngleFromBase"])
                 memory["EnemyBaseDistanceFromBase"] = float(message.getContent()[2])#*
                 memory["EnemyBaseID"] = message.getContent()[3]
                 actionWarRocketLauncher.nextState= TravelToEnemyBaseState
                 enemyBaseData = determinateAttacksAngle(memory["EnemyBaseAngleFromBase"],memory["EnemyBaseDistanceFromBase"],message.getAngle(),message.getDistance())
-                print (enemyBaseData)
                 setHeading(enemyBaseData[0])
                 memory["EnemyBaseDistance"] = enemyBaseData[1]
 
             if message.getContent()[0] == "Group" :
                 if "Group" not in memory:
-                    requestRole(message.getContent()[1], "Bidder")
                     memory["Group"] = message.getContent()[1]
                     reply(message, "INFORM", ["OK"])
                 else :
                     reply(message, "INFORM", ["BUSY"])
+            elif message.getContent()[0]=="Join":
+                requestRole(message.getContent()[1], "Bidder")
+                setHeading(message.getAngle()) # TODO optimiser
+                actionWarRocketLauncher.nextState = TravelToEnemyBaseState
 
         if message.getMessage() == "INFORM":
             if message.getContent()[0] == "Here":
@@ -132,11 +126,6 @@ def actionWarRocketLauncher():
     actionWarRocketLauncher.currentState = actionWarRocketLauncher.nextState
     actionWarRocketLauncher.nextState = None
 
-    ##memory["currentState"]= memory["nextState"]
-    #memory["nextState"]= None
-
-    #if memory["currentState"]:
-    #    return memory["currentState"].execute()
     if actionWarRocketLauncher.currentState:
         return actionWarRocketLauncher.currentState.execute()
 
@@ -171,5 +160,3 @@ def calculateCoord(angle, rayon):
 actionWarRocketLauncher.nextState = SearchFoeState
 actionWarRocketLauncher.currentState = None
 memory={}
-#memory["currentState"]= None
-#memory["nextState"]= SearchFoeState

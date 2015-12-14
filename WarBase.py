@@ -13,6 +13,11 @@ class CreateAgent(object):
         actionWarBase.nextState= CreateAgent
         return create()
 
+class AlertState :
+    @staticmethod
+    def execute():
+        return idle()
+        
 def reflexes():
     messages = getMessages()
     if len(messages)>0:
@@ -46,11 +51,6 @@ def actionWarBase():
     actionWarBase.currentState = actionWarBase.nextState
     actionWarBase.nextState = None
 
-    ##memory["currentState"]= memory["nextState"]
-    #memory["nextState"]= None
-
-    #if memory["currentState"]:
-    #    return memory["currentState"].execute()
     if actionWarBase.currentState:
         return actionWarBase.currentState.execute()
 
@@ -85,5 +85,3 @@ def calculateCoord(angle, rayon):
 actionWarBase.nextState = IdleState
 actionWarBase.currentState = None
 memory={}
-#memory["currentState"]= None
-#memory["nextState"]= SearchFoeState

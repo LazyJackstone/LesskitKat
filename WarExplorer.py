@@ -121,11 +121,45 @@ class WiggleState(object):
             RandomHeading()
         return move()
 
+class CreateGroupState(object):
+    @staticmethod
+    def execute():
+        setDebugString("CREATING GROUP")
+        actionWarExplorer.nextState = CreateGroupState
+        memory["NbTickSinceCreationStarted"] = memory["NbTickSinceCreationStarted"] + 1
+        messages = getMessages()
+        if len(messages) > 0:
+            for message in messages:
+                if message.getMessage()=="INFORM":
+                    if message.getContent()[0]=="Group":
+                        if message.getContent()[1]=="OK":
+                            percepts = getPerceptsEnemiesWarBase()
+                            if len (percepts) > 0:
+                                sendMessage(message.senderID(), "REQUEST", ["Join", "BaseAttack",str(percepts.getAngle())])
+                            if "LauncherInGroup" in memory :
+                                memory["LauncherInGroup"].append(message.senderID())
+                            else :
+                                memory["LauncherInGroup"] = [message.senderID()]
+
+        if memory["NbTickSinceCreationStarted"] == 2:
+            if "LauncherInGroup" in memory:
+                actionWarExplorer.nextState = CommanderState
+
 class CommanderState(object):
     @staticmethod
     def execute():
 
-        setDebugString("Commander State")
+        setDebugString("COMMANDER")
+        messages = getMessages()
+        if len(messages) > 0:
+            for message in messages:
+                if message.senderID() in memory["LauncherInGroup"]:
+                    if message.getMessage() == "INFORM":
+                        if message.getContent()[0] == "Arrived":
+                            percepts = getPerceptsEnemiesWarBase()
+                            if len(percept) > 0:
+                                reply(message, "ORDER", "Fire", str(percepts[0]))
+
         """
         if isInPosition("Bidder"):#TODO Trouver condition Valide
             broadcastMessage(memory["Group"], "Bidder", "ORDER", ["Fire", "percept.getAngle()"])#FIRE
@@ -144,17 +178,15 @@ def reflexes():
 
     percepts = getPerceptsEnemiesWarBase()
     if len(percepts)>0 :
-        selectedBase = None
-        for percept in percepts :
-            if selectedBase is None :
-                selectedBase = percept
+        broadcastMessageToAll("INFORM",["EnemyBase",str(percepts[0].getAngle()),str(percepts[0].getDistance()), str(percepts[0].getID())])
 
-            broadcastMessageToAll("INFORM",["EnemyBase",str(percept.getAngle()),str(percept.getDistance()), str(percept.getID())])
+        if "Group" not in memory:
+            requestRole("BaseAttack", "Manager")
+            memory["Group"]= "BaseAttack"
+            memory["NbTickSinceCreationStarted"] = 0
+            broadcastMessageToAgentType(WarAgentType.WarExplorer, "REQUEST", ["Group","BaseAttack"])
+            actionWarExplorer.nextState= CreateGroupState
 
-        requestRole("BaseAttack", "Manager")
-        memory["Group"]= "BaseAttack"
-        broadcastMessageToAgentType(WarAgentType.WarExplorer, "REQUEST", ["Group","BaseAttack"])
-        actionWarExplorer.nextState= CommanderState
     if isBlocked():
         RandomHeading()
     return None
