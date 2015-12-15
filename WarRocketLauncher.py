@@ -64,11 +64,13 @@ class FollowOrderState(object): #TODO : FINIR getting info
     def execute() :
         setDebugString("Following Order")
         messages = getMessages()
+        print str(messages)
         if len(messages) > 0 :
             for message in messages :
                 if message.getMessage() == "ORDER" :
                     if message.getContent()[0] == "Travel" :
                         movingData = determinateAttacksAngle(float(message.getContent()[1]), float(message.getContent()[2]), message.getAngle(), message.getDistance())
+                        reply(message, "INFORM", ["Travelling"])
                         setHeading(movingData[0])
                         return move()
                     else :
@@ -76,14 +78,15 @@ class FollowOrderState(object): #TODO : FINIR getting info
                             if isReloaded():
                                 shootingData = determinateAttacksAngle(float(message.getContent()[1]), float(message.getContent()[2]), message.getAngle(), message.getDistance())
                                 setHeading(shootingData[0])
+                                reply(message, "INFORM", ["Firing"])
                                 return fire()
                             else :
+                                reply(message, "INFORM", ["Reloading"])
                                 return reloadWeapon()
 
-        else :
             #TODO :  LeaveGroup + return SearchFoeState
-            actionWarRocketLauncher.nextState = FollowOrderState
-            return move()
+        actionWarRocketLauncher.nextState = FollowOrderState
+        return move()
 
 # TODO : Add send message when percept ennemy to other rl which will come to help if they are not busy.
 # TODO : Add gestion refus grouping
@@ -111,8 +114,8 @@ def reflexes() :
 
             if message.getContent()[0] == "Join":
                 requestRole(message.getContent()[1], "Bidder")
-                #determinateAttacksAngle()
-                setHeading(message.getAngle()) # TODO Add triangulation
+                reply(message, "INFORM", ["Travelling"])
+                setHeading(message.getAngle())
                 actionWarRocketLauncher.nextState = FollowOrderState
 
         if message.getMessage() == "INFORM":

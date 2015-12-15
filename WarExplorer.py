@@ -127,75 +127,67 @@ class CreateGroupState(object):
         actionWarExplorer.nextState = CreateGroupState
         memory["NbTickSinceCreationStarted"] = memory["NbTickSinceCreationStarted"] + 1
         if "Group" not in memory :
-            print "Groupe Créer"
             requestRole("BaseAttack", "Manager")
             memory["Group"] = "BaseAttack"
             sendMessageToRocketLaunchers("REQUEST", ["Group","BaseAttack"])
             sendMessageToEngineers("REQUEST", ["Group", "BaseAttack"])
-            print "Messages envoyés"
             return idle()
         else :
             messages = getMessages()
-            AvailableRL = []
-            AvailableE = []
+            availableRL = []
+            availableE = []
             if len(messages) > 0 : #TODO: Add selection of RL and Engineer that fit the most
-                print str(messages)
                 for message in messages :
                     if message.getMessage() == "INFORM" :
                         if message.getContent()[0] == "OK" :
                             if message.getContent()[1] == "RocketLauncher" :
-                                if AvailableRL is None :
-                                    AvailableRL = [message]
+                                if availableRL is None :
+                                    availableRL = [message]
                                 else :
-                                    AvailableRL.append(message)
+                                    availableRL.append(message)
                             else :
-                                if AvailableE is None :
-                                    AvailableE = [message]
+                                if availableE is None :
+                                    availableE = [message]
                                 else :
-                                    AvailableE.append(message)
-                                print "E added"
+                                    availableE.append(message)
 
             selectedEngineer = None
-            if AvailableE is not None :
-                for engineer in AvailableE:
+            if availableE is not None :
+                for engineer in availableE:
                     if selectedEngineer is None :
                         selectedEngineer = engineer
                     else :
                         if engineer.getDistance() < selectedEngineer.getDistance() :
                             selectedEngineer = engineer
-            selectedRl = None
-            if AvailableRL is not None : #TODO: Add tri of AvailableRL
-                for rl in AvailableRL :
-                    if selectedRl is None:
-                        selectedRl = [rl]
+            selectedRocketLauncher = []
+            if availableRL is not None : #TODO: Add tri of AvailableRL
+                for rocketl in availableRL :
+                    if selectedRocketLauncher is None:
+                        selectedRocketLauncher = [rocketl]
                     else :
-                        if len (selectedRl) < 2 :
-                            selectedRl.append(rl)
+                        if len (selectedRocketLauncher) < 2 :
+                            selectedRocketLauncher.append(rocketl)
                         else :
-                            if rl.getDistance() < selectedRl[0].getDistance():
-                                selectedRl[1] = selectedRl[0]
-                                selectedRl[0] = rl
+                            if rocketl.getDistance() < selectedRocketLauncher[0].getDistance():
+                                selectedRocketLauncher[1] = selectedRocketLauncher[0]
+                                selectedRocketLauncher[0] = rocketl
                             else :
-                                if rl.getDistance() < selectedRl[1]:
-                                    selectedRl[1] = rl
-            if selectedRl is not None:
-                print "CARE"
-                for rl in selectedRl :
-                    reply(rl, "REQUEST", ["Join", "BaseAttack"])
+                                if rocketl.getDistance() < selectedRocketLauncher[1]:
+                                    selectedRocketLauncher[1] = rocketl
+            if selectedRocketLauncher is not None :
+                for i in range( len(selectedRocketLauncher)) :
+                    reply(selectedRocketLauncher[i], "REQUEST", ["Join", "BaseAttack"])
                     if "LauncherInGroup" in memory :
-                        print "1"
-                        memory["LauncherInGroup"].append(rl.senderID())
-                        print "2"
+                        memory["LauncherInGroup"].append(selectedRocketLauncher[i].getSenderID())
                     else :
-                        memory["LauncherInGroup"] = [rl.senderID()]
+                        memory["LauncherInGroup"] = [selectedRocketLauncher[i].getSenderID()]
 
-            if selectedEngineer is not None :
-                reply(message, "REQUEST", ["Join", "BaseAttack"])
-                memory["EngineerInGroup"] = selectedEngineer.senderID()
+#            if selectedEngineer is not None :
+#                reply(selectedEngineer, "REQUEST", ["Join", "BaseAttack"])
+#                memory["EngineerInGroup"] = selectedEngineer.getSenderID()
 
 
         if memory["NbTickSinceCreationStarted"] == 3 :
-            print "Come on"
             if "LauncherInGroup" in memory:
                 actionWarExplorer.nextState = CommanderState
             else :
@@ -207,16 +199,16 @@ class CommanderState(object):
     @staticmethod
     def execute():
         setDebugString("COMMANDER")
-        print "Commander"
+        print memory["LauncherInGroup"]
         messages = getMessages()
         if len(messages) > 0 :
             newsFrom = []
             for message in messages:
-                if message.senderID() in memory["LauncherInGroup"] or message.senderID() in memory["EngineerInGroup"] :
+                if message.getSenderID() in memory["LauncherInGroup"]: #or message.getSenderID() in memory["EngineerInGroup"] :
                     if newsFrom is None :
-                        newsFrom =[message.senderID()]
+                        newsFrom =[message.getSenderID()]
                     else :
-                        newsFrom.append(message.senderID())
+                        newsFrom.append(message.getSenderID())
                     if message.getMessage() == "INFORM":
                         if message.getContent()[0] == "Arrived" :
                             percepts = getPerceptsEnemiesWarBase() #TODO : Select best base to attack
@@ -224,24 +216,33 @@ class CommanderState(object):
                                 reply(message, "ORDER", "Fire", str(percepts[0].getAngle(), percepts[0].getDistance()))
                         else :
                             if message.getContent()[0] == "Travelling" :
-                                if message.senderID() in memory["LauncherInGroup"]:
+                                if message.getSenderID() in memory["LauncherInGroup"]:
                                     for i in range(len(memory["LauncherInGroup"])) :
                                         if i == 0 :
-                                            reply( message, "ORDER", ["Travel", str(getHeading() + 90), str(15)])
+                                            sendMessage(memory["LauncherInGroup"][i], "ORDER", ["Travel", str(getHeading() + 90), str(15)])
                                         if i == 1 :
-                                            reply( message, "ORDER", ["Travel", str(getHeading()) - 90, str(15)])
-                                if message.senderID() == memory["EngineerInGroup"] :
-                                    reply(message, "ORDER", ["Travel", str(getHeading() + 180), str(5)])
+                                            sendMessage(memory["LauncherInGroup"][i], "ORDER", ["Travel", str(getHeading() - 90), str(15)])
+                                #if message.getSenderID() == memory["EngineerInGroup"] :
+                                #    reply(message, "ORDER", ["Travel", str(getHeading() + 180), str(5)])
 
-            if len(newsFrom) != len(memory["LauncherInGroup"]) + len(memory["EngineerInGroup"]) :
-                if memory["EngineerInGroup"] in newsFrom:
-                    if len(newsFrom) == 1 :
+            if len(newsFrom) != len(memory["LauncherInGroup"]): #+ len(memory["EngineerInGroup"]) :
+                #if memory["EngineerInGroup"] in newsFrom:
+                #    if len(newsFrom) == 1 :
                         #TODO: Add Abort
-                        print "ABORD"
-                    else :
-                        for i in range(len(memory["LauncherInGroup"])):
-                            if memory["LauncherInGroup"][i] not in newsFrom :
-                                del memory["LauncherInGroup"][i]
+                #        print "ABORD"
+                #    else :
+                for i in range(len(memory["LauncherInGroup"])):
+                    if memory["LauncherInGroup"][i] not in newsFrom :
+                        del memory["LauncherInGroup"][i]
+        else :
+            for i in range(len(memory["LauncherInGroup"])) :
+                if i == 0 :
+                    sendMessage(memory["LauncherInGroup"][i], "ORDER", ["Travel", str(getHeading() + 90), str(15)])
+                if i == 1 :
+                    sendMessage(memory["LauncherInGroup"][i], "ORDER", ["Travel", str(getHeading() - 90), str(15)])
+
+        actionWarExplorer.nextState = CommanderState
+        return idle()
 
 def reflexes():
     percepts = getPerceptsEnemiesWarBase()
@@ -249,6 +250,7 @@ def reflexes():
         sendMessageToBases("INFORM",["EnemyBase", str(percepts[0].getID()), str(percepts[0].getAngle()), str(percepts[0].getDistance()), str(percepts[0].getHealth())])
         if "Group" not in memory:
             actionWarExplorer.nextState = CreateGroupState
+            setHeading(percepts[0].getAngle())
             memory["NbTickSinceCreationStarted"] = 0
 
     if isBlocked():
