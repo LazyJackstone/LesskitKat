@@ -9,8 +9,8 @@ class SearchFoodState(object):
             actionWarExplorer.nextState = GoHomeState
             percepts=getPerceptsFood()
             if len(percepts)>0:
-                broadcastMessageToAgentType(WarAgentType.WarExplorer, "INFORM", ["Food", str(percepts[0].getAngle()), str(percepts[0].getDistance())]) #TODO SEND Vecteur explo -> Food
-                return idle()
+                sendMessageToExplorers("INFORM", ["Food", str(percepts[0].getAngle()), str(percepts[0].getDistance())])
+                return move()
 
         actionWarExplorer.nextState = SearchFoodState
         percepts = getPerceptsFood()
@@ -23,16 +23,16 @@ class SearchFoodState(object):
             for percept in percepts :
                 if percept.getDistance() < getMaxDistanceTakeFood() :
                     return take()
-                else:
+                else :
                     if closestFood is None :
                         closestFood = percept
-                    else:
+                    else :
                         if percept.getDistance()< closestFood.getDistance():
                             closestFood = percept
 
             followTarget(closestFood)
             return move()
-        else:
+        else :
             messages = getMessages()
             if len(messages) > 0:
                 for message in getMessages():
@@ -46,16 +46,15 @@ class SearchFoodState(object):
                                 memory["AngleToFood"] = foodData[0]
                                 setHeading(foodData[0])
 
-                            elif foodData[1] < memory["DistanceToFood"]:
+                            if foodData[1] < memory["DistanceToFood"]:
                                 memory["DistanceToFood"] = foodData[1]
                                 memory["AngleToFood"] = foodData[0]
                                 setHeading(memory["AngleToFood"])
 
             if "AngleToFood" not in memory :
                 setRandomHeading(30)
-            else:
+            else :
                 memory["DistanceToFood"]=memory["DistanceToFood"] - getSpeed()
-                print (memory["DistanceToFood"])
 
             return move()
 
@@ -111,7 +110,7 @@ class GoHomeState(object):
                         setHeading(memory["BaseAngle"])
                         return move()
 
-                broadcastMessageToAgentType(WarAgentType.WarBase,"ASK",["Where are you"])
+                sendMessageToBases("ASK",["Where are you"])
                 return idle()
 class WiggleState(object):
     @staticmethod
@@ -123,76 +122,134 @@ class WiggleState(object):
 
 class CreateGroupState(object):
     @staticmethod
-    def execute():
+    def execute() :
         setDebugString("CREATING GROUP")
         actionWarExplorer.nextState = CreateGroupState
         memory["NbTickSinceCreationStarted"] = memory["NbTickSinceCreationStarted"] + 1
-        messages = getMessages()
-        if len(messages) > 0:
-            for message in messages:
-                if message.getMessage()=="INFORM":
-                    if message.getContent()[0]=="Group":
-                        if message.getContent()[1]=="OK":
-                            percepts = getPerceptsEnemiesWarBase()
-                            if len (percepts) > 0:
-                                sendMessage(message.senderID(), "REQUEST", ["Join", "BaseAttack",str(percepts.getAngle())])
-                            if "LauncherInGroup" in memory :
-                                memory["LauncherInGroup"].append(message.senderID())
-                            else :
-                                memory["LauncherInGroup"] = [message.senderID()]
+        if "Group" not in memory :
+            print "Groupe Créer"
+            requestRole("BaseAttack", "Manager")
+            memory["Group"] = "BaseAttack"
+            sendMessageToRocketLaunchers("REQUEST", ["Group","BaseAttack"])
+            sendMessageToEngineers("REQUEST", ["Group", "BaseAttack"])
+            print "Messages envoyés"
+            return idle()
+        else :
+            messages = getMessages()
+            print " Explorer Messages" + str(messages)
+            AvailableRL = []
+            AvailableE = []
+            if len(messages) > 0 : #TODO: Add selection of RL and Engineer that fit the most
+                for message in messages :
+                    if message.getMessage() == "INFORM" :
+                        if message.getContent()[0] == "Group" :
+                            if message.getContent()[1] == "OK" :
+                                if message.getContent()[2] == "RocketLauncher" :
+                                    AvailableRL.append(message)
+                                    print "Rl Added"
+                                else :
+                                    AvailableE.append(message)
+                                    print "E added"
 
-        if memory["NbTickSinceCreationStarted"] == 2:
+            selectedEngineer = None
+            if AvailableE is not None :
+                for engineer in AvailableE:
+                    if selectedEngineer is None :
+                        selectedEngineer = engineer
+                    else :
+                        if engineer.getDistance() < selectedEngineer.getDistance() :
+                            selectedEngineer = engineer
+            selectedRl = None
+            if AvailableRL is not None : #TODO: Add tri of AvailableRL
+                for rl in AvailableRL :
+                    if selectedRl is None:
+                        selectedRl.append(rl)
+                    else :
+                        if len (selectedRl) < 2 :
+                            selectedRl.append(rl)
+                        else :
+                            if rl.getDistance() < selectedRl[0].getDistance():
+                                selectedRl[1] = selectedRl[0]
+                                selectedRl[0] = rl
+                            else :
+                                if rl.getDistance() < selectedRl[1]:
+                                    selectedRl[1] = rl
+            if selectedRl is not None:
+                print "Can Follow"
+                for rl in selectedRl :
+                    reply(message, "REQUEST", ["Join", "BaseAttack"])
+                    if "LauncherInGroup" in memory :
+                        memory["LauncherInGroup"].append(message.senderID())
+                    else :
+                        memory["LauncherInGroup"] = [message.senderID()]
+
+
+            if selectedEngineer is not None :
+                reply(message, "REQUEST", ["Join", "BaseAttack"])
+                memory["EngineerInGroup"] = selectedEngineer.senderID()
+
+
+        if memory["NbTickSinceCreationStarted"] == 3 :
             if "LauncherInGroup" in memory:
                 actionWarExplorer.nextState = CommanderState
+            else :
+                actionWarExplorer.nextState = SearchFoodState
+
+        return idle()
 
 class CommanderState(object):
     @staticmethod
     def execute():
-
         setDebugString("COMMANDER")
         messages = getMessages()
-        if len(messages) > 0:
+        if len(messages) > 0 :
+            newsFrom = []
             for message in messages:
-                if message.senderID() in memory["LauncherInGroup"]:
+                if message.senderID() in memory["LauncherInGroup"] or message.senderID() in memory["EngineerInGroup"] :
+                    newsFrom.append(message.senderID())
                     if message.getMessage() == "INFORM":
-                        if message.getContent()[0] == "Arrived":
-                            percepts = getPerceptsEnemiesWarBase()
-                            if len(percept) > 0:
-                                reply(message, "ORDER", "Fire", str(percepts[0]))
+                        if message.getContent()[0] == "Arrived" :
+                            percepts = getPerceptsEnemiesWarBase() #TODO : Select best base to attack
+                            if len(percepts) > 0 :
+                                reply(message, "ORDER", "Fire", str(percepts[0].getAngle(), percepts[0].getDistance()))
+                        else :
+                            if message.getContent()[0] == "Travelling" :
+                                if message.senderID() in memory["LauncherInGroup"]:
+                                    for i in range(len(memory["LauncherInGroup"])) :
+                                        if i == 0 :
+                                            reply( message, "ORDER", ["Travel", str(getHeading() + 90), str(15)])
+                                        if i == 1 :
+                                            reply( message, "ORDER", ["Travel", str(getHeading()) - 90, str(15)])
+                                if message.senderID() == memory["EngineerInGroup"] :
+                                    reply(message, "ORDER", ["Travel", str(getHeading() + 180), str(5)])
 
-        """
-        if isInPosition("Bidder"):#TODO Trouver condition Valide
-            broadcastMessage(memory["Group"], "Bidder", "ORDER", ["Fire", "percept.getAngle()"])#FIRE
-        else:
-            broadcastMessage(memory["Group"], "Bidder", "ORDER", ["Travel", "percept.getAngle()"])#TRAVEL
-        return idle()
-        """
+            if len(newsFrom) != len(memory["LauncherInGroup"]) + len(memory["EngineerInGroup"]) :
+                if memory["EngineerInGroup"] in newsFrom:
+                    if len(newsFrom) == 1 :
+                        #TODO: Add Abort
+                        print "ABORD"
+                    else :
+                        for i in range(len(memory["LauncherInGroup"])):
+                            if memory["LauncherInGroup"][i] not in newsFrom :
+                                del memory["LauncherInGroup"][i]
 
-#TODO: Mettre à jour les INFO dans memory en priorite;
 def reflexes():
-    messages = getMessages()
-    if len(messages) :
-        for message in messages :
-            if message.getMessage()=="DATA":
-                print ("MAJ")#TODO
-
     percepts = getPerceptsEnemiesWarBase()
-    if len(percepts)>0 :
-        broadcastMessageToAll("INFORM",["EnemyBase",str(percepts[0].getAngle()),str(percepts[0].getDistance()), str(percepts[0].getID())])
-
+    if len(percepts) > 0 : #TODO : Add choose one + send data to bases
+        sendMessageToBases("INFORM",["EnemyBase", str(percepts[0].getID()), str(percepts[0].getAngle()), str(percepts[0].getDistance()), str(percepts[0].getHealth())])
         if "Group" not in memory:
-            requestRole("BaseAttack", "Manager")
-            memory["Group"]= "BaseAttack"
+            actionWarExplorer.nextState = CreateGroupState
             memory["NbTickSinceCreationStarted"] = 0
-            broadcastMessageToAgentType(WarAgentType.WarExplorer, "REQUEST", ["Group","BaseAttack"])
-            actionWarExplorer.nextState= CreateGroupState
 
     if isBlocked():
         RandomHeading()
+
     return None
 
 
 def actionWarExplorer():
+    memory["NbTicksFromStart"] = memory["NbTicksFromStart"] + 1
+    #sendMessageToBases("STATUS", ["Explorer"])
     result = reflexes() # Reflexes
     if result:
         return result
@@ -200,10 +257,9 @@ def actionWarExplorer():
     # FSM - Changement d'Ã©tat
     actionWarExplorer.currentState = actionWarExplorer.nextState
     actionWarExplorer.nextState = None
-
     if actionWarExplorer.currentState:
         return actionWarExplorer.currentState.execute()
-    else:
+    else :
         result = WiggleState.execute()
         actionWarExplorer.nextState = WiggleState
         return result
@@ -215,7 +271,7 @@ def actionWarExplorer():
     angleMessage:    Angle entre l'envoyeur du message et l'unité courante
     distanceMessage: Distance entre l'envoyeur du message et l'unité courante
 """
-def determinateAttacksAngle(anglePercept, distancePercept, angleMessage, distanceMessage):
+def determinateAttacksAngle(anglePercept, distancePercept, angleMessage, distanceMessage): #TODO : Corriger Distance --> taille carte :  1000*600
     vectorCoord1 = calculateCoord(anglePercept, distancePercept)
     vectorCoord2 = calculateCoord(angleMessage, distanceMessage)
     vectorResult = [vectorCoord1[0] + vectorCoord2[0], vectorCoord1[1] + vectorCoord2[1]]
@@ -236,3 +292,4 @@ def calculateCoord(angle, rayon):
 actionWarExplorer.nextState = SearchFoodState
 actionWarExplorer.currentState = None
 memory={}
+memory["NbTicksFromStart"] = 0

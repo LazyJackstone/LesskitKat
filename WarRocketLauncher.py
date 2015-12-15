@@ -1,10 +1,11 @@
 import math
+#TODO : Add Send message when Enemy Base destroyed
 #TODO: Finir la communication Group : Ordre Base ne peut être interrompu/ Request explorer possiblement interuptible.
 class SearchFoeState(object):
     @staticmethod
     def execute():
         setDebugString("SearchFoeState")
-        percepts = getPercepts()
+        percepts = getPerceptsEnemies()
         if len(percepts)>0:
             selectedPercept = None
             for percept in percepts:
@@ -37,7 +38,7 @@ class FiringState(object):
         actionWarRocketLauncher.nextState = ReloadingState
         return fire()
 
-class ReloadingState(object):
+class ReloadingState(object): #TODO add resume firing on targeted if setted
     @staticmethod
     def execute():
         setDebugString("Reloading State")
@@ -56,57 +57,68 @@ class WiggleState(object):
             RandomHeading()
         return move()
 
-class TravelToEnemyBaseState(object):
+class FollowOrderState(object): #TODO : FINIR getting info
     @staticmethod
     def execute() :
-        setDebugString("OMW to Enemy Base")
-        percepts= getPerceptsEnemiesWarBase()
-        targetedBasePercept= None
-        if len(percepts) > 0 :
-            for percept in percepts :
-                if str(percept.getID()) == memory["EnemyBaseID"]:
-                    targetedBasePercept= percept
+        setDebugString("Following Order")
+        messages = getMessages()
+        if len(messages) > 0 :
+            for message in messages :
+                if message.getMessage() == "ORDER" :
+                    if message.getContent()[0] == "Travel" :
+                        movingData = determinateAttacksAngle(float(message.getContent()[1]), float(message.getContent()[2]), message.getAngle(), message.getDistance())
+                        setHeading(movingData[0])
+                        return move()
+                    else :
+                        if message.getContent()[1] == "Fire" :
+                            if isReloaded():
+                                shootingData = determinateAttacksAngle(float(message.getContent()[1]), float(message.getContent()[2]), message.getAngle(), message.getDistance())
+                                setHeading(shootingData[0])
+                                return fire()
+                            else :
+                                return reloadWeapon()
 
-            if targetedBasePercept is not None :
-                actionWarRocketLauncher.nextState= FiringState
-                setHeading(percept.getAngle())
-                return idle()
-            else :
-                actionWarRocketLauncher.nextState= TravelToEnemyBaseState
-                return move() #TODO setHeading
         else :
-            actionWarRocketLauncher.nextState= TravelToEnemyBaseState
+            #TODO :  LeaveGroup + return SearchFoeState
+            actionWarRocketLauncher.nextState = FollowOrderState
             return move()
 
-# TODO ADD Gestion de la priorite ORDER > REQUEST
+# TODO : Add send message when percept ennemy to other rl which will come to help if they are not busy.
+# TODO : Add gestion refus grouping
+# TODO : Add when receiving order from base attack destination given without interruption possible
 def reflexes() :
+    #sendMessageToBases("STATUS", ["RocketLauncher"])
     messages = getMessages()
+    print " " + str(getID()) + " " + str(messages)
     for message in messages :
-        if message.getMessage()=="REQUEST" :
-            if message.getContent()[0] == "Attack Enemy Base" :
-                actionWarRocketLauncher.nextState = TravelToEnemyBaseState
-                memory["EnemyBaseAngleFromBase"] = float(message.getContent()[1])#*
-                memory["EnemyBaseDistanceFromBase"] = float(message.getContent()[2])#*
-                memory["EnemyBaseID"] = message.getContent()[3]
-                actionWarRocketLauncher.nextState= TravelToEnemyBaseState
-                enemyBaseData = determinateAttacksAngle(memory["EnemyBaseAngleFromBase"],memory["EnemyBaseDistanceFromBase"],message.getAngle(),message.getDistance())
+        if message.getMessage() == "REQUEST" :
+            if message.getContent()[0] == "Attack Enemy Base" : #NOTE : DEPRECATED
+                memory["EnemyBaseAngleFromBase"] = float(message.getContent()[2])#*
+                memory["EnemyBaseDistanceFromBase"] = float(message.getContent()[3])#*
+                memory["EnemyBaseID"] = message.getContent()[1]
+                actionWarRocketLauncher.nextState = FollowOrderState
+                enemyBaseData = determinateAttacksAngle( memory["EnemyBaseAngleFromBase"], memory["EnemyBaseDistanceFromBase"], message.getAngle(), message.getDistance())
                 setHeading(enemyBaseData[0])
                 memory["EnemyBaseDistance"] = enemyBaseData[1]
 
             if message.getContent()[0] == "Group" :
-                if "Group" not in memory:
+                print "Got Message"
+                if "Group" not in memory :
                     memory["Group"] = message.getContent()[1]
                     reply(message, "INFORM", ["OK"])
                 else :
                     reply(message, "INFORM", ["BUSY"])
-            elif message.getContent()[0]=="Join":
+
+            if message.getContent()[0] == "Join":
+                print "GotJoiningRequest"
                 requestRole(message.getContent()[1], "Bidder")
-                setHeading(message.getAngle()) # TODO optimiser
-                actionWarRocketLauncher.nextState = TravelToEnemyBaseState
+                determinateAttacksAngle()
+                setHeading(message.getAngle()) # TODO Add triangulation
+                actionWarRocketLauncher.nextState = FollowOrderState
 
         if message.getMessage() == "INFORM":
             if message.getContent()[0] == "Here":
-                memory["AllyBaseAngle"]= message.getAngle()
+                memory["AllyBaseAngle"] = message.getAngle()
 
         #if message.getMessage()== "ASK": #Cas Message ASK
 
