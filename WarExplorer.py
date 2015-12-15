@@ -136,20 +136,24 @@ class CreateGroupState(object):
             return idle()
         else :
             messages = getMessages()
-            print " Explorer Messages" + str(messages)
             AvailableRL = []
             AvailableE = []
             if len(messages) > 0 : #TODO: Add selection of RL and Engineer that fit the most
+                print str(messages)
                 for message in messages :
                     if message.getMessage() == "INFORM" :
-                        if message.getContent()[0] == "Group" :
-                            if message.getContent()[1] == "OK" :
-                                if message.getContent()[2] == "RocketLauncher" :
+                        if message.getContent()[0] == "OK" :
+                            if message.getContent()[1] == "RocketLauncher" :
+                                if AvailableRL is None :
+                                    AvailableRL = [message]
+                                else :
                                     AvailableRL.append(message)
-                                    print "Rl Added"
+                            else :
+                                if AvailableE is None :
+                                    AvailableE = [message]
                                 else :
                                     AvailableE.append(message)
-                                    print "E added"
+                                print "E added"
 
             selectedEngineer = None
             if AvailableE is not None :
@@ -163,7 +167,7 @@ class CreateGroupState(object):
             if AvailableRL is not None : #TODO: Add tri of AvailableRL
                 for rl in AvailableRL :
                     if selectedRl is None:
-                        selectedRl.append(rl)
+                        selectedRl = [rl]
                     else :
                         if len (selectedRl) < 2 :
                             selectedRl.append(rl)
@@ -175,14 +179,15 @@ class CreateGroupState(object):
                                 if rl.getDistance() < selectedRl[1]:
                                     selectedRl[1] = rl
             if selectedRl is not None:
-                print "Can Follow"
+                print "CARE"
                 for rl in selectedRl :
-                    reply(message, "REQUEST", ["Join", "BaseAttack"])
+                    reply(rl, "REQUEST", ["Join", "BaseAttack"])
                     if "LauncherInGroup" in memory :
-                        memory["LauncherInGroup"].append(message.senderID())
+                        print "1"
+                        memory["LauncherInGroup"].append(rl.senderID())
+                        print "2"
                     else :
-                        memory["LauncherInGroup"] = [message.senderID()]
-
+                        memory["LauncherInGroup"] = [rl.senderID()]
 
             if selectedEngineer is not None :
                 reply(message, "REQUEST", ["Join", "BaseAttack"])
@@ -190,6 +195,7 @@ class CreateGroupState(object):
 
 
         if memory["NbTickSinceCreationStarted"] == 3 :
+            print "Come on"
             if "LauncherInGroup" in memory:
                 actionWarExplorer.nextState = CommanderState
             else :
@@ -201,12 +207,16 @@ class CommanderState(object):
     @staticmethod
     def execute():
         setDebugString("COMMANDER")
+        print "Commander"
         messages = getMessages()
         if len(messages) > 0 :
             newsFrom = []
             for message in messages:
                 if message.senderID() in memory["LauncherInGroup"] or message.senderID() in memory["EngineerInGroup"] :
-                    newsFrom.append(message.senderID())
+                    if newsFrom is None :
+                        newsFrom =[message.senderID()]
+                    else :
+                        newsFrom.append(message.senderID())
                     if message.getMessage() == "INFORM":
                         if message.getContent()[0] == "Arrived" :
                             percepts = getPerceptsEnemiesWarBase() #TODO : Select best base to attack

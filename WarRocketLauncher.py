@@ -20,8 +20,10 @@ class SearchFoeState(object):
                 followTarget(selectedPercept)
                 if isReloaded():
                     actionWarRocketLauncher.nextState = FiringState
+                    return idle()
                 else :
                     actionWarRocketLauncher.nextState = ReloadingState
+                    return idle()
             else:
                 actionWarRocketLauncher.nextState = SearchFoeState
                 setRandomHeading(25)
@@ -89,7 +91,6 @@ class FollowOrderState(object): #TODO : FINIR getting info
 def reflexes() :
     #sendMessageToBases("STATUS", ["RocketLauncher"])
     messages = getMessages()
-    print " " + str(getID()) + " " + str(messages)
     for message in messages :
         if message.getMessage() == "REQUEST" :
             if message.getContent()[0] == "Attack Enemy Base" : #NOTE : DEPRECATED
@@ -102,27 +103,21 @@ def reflexes() :
                 memory["EnemyBaseDistance"] = enemyBaseData[1]
 
             if message.getContent()[0] == "Group" :
-                print "Got Message"
                 if "Group" not in memory :
                     memory["Group"] = message.getContent()[1]
-                    reply(message, "INFORM", ["OK"])
+                    reply(message, "INFORM", ["OK", "RocketLauncher"])
                 else :
                     reply(message, "INFORM", ["BUSY"])
 
             if message.getContent()[0] == "Join":
-                print "GotJoiningRequest"
                 requestRole(message.getContent()[1], "Bidder")
-                determinateAttacksAngle()
+                #determinateAttacksAngle()
                 setHeading(message.getAngle()) # TODO Add triangulation
                 actionWarRocketLauncher.nextState = FollowOrderState
 
         if message.getMessage() == "INFORM":
             if message.getContent()[0] == "Here":
                 memory["AllyBaseAngle"] = message.getAngle()
-
-        #if message.getMessage()== "ASK": #Cas Message ASK
-
-        #if message.getMessage()== "ORDER": #Cas Message ORDER
 
     if isBlocked():
         RandomHeading()
