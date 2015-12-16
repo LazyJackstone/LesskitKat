@@ -23,7 +23,7 @@ def reflexes():
     if isBlocked():
         RandomHeading()
     for base in getPerceptsEnemiesWarBase():
-    	if base.getDistance() < WarKamikazeMemory['radius_bomb']:
+    	if base.getDistance() < WarKamikazeMemory['radiusBomb']:
     		return fire()
     return None
 
@@ -61,21 +61,21 @@ class OffensiveState(object):
             angleMessage = message.getAngle(); distanceMessage = message.getDistance()
             setHeading(determinateAttacksAngle(anglePercept, distancePercept, angleMessage, distanceMessage))
 
-        # Attaque tout seul la base s'il le perçoit
+        # Attaque tout seul la base s'il la perçoit
         for base in getPerceptsEnemiesWarBase():
-    		if base.getDistance() < WarKamikazeMemory['radius_bomb']:
+    		if base.getDistance() < WarKamikazeMemory['radiusBomb']:
     			return fire()
 
         return move()
 
 
-# Variables du WarKamikaze
+# Variables d'etat du WarKamikaze
 actionWarKamikaze.currentState = None
 actionWarKamikaze.nextState = WiggleState
+# Memoire du WarKamikaze
 WarKamikazeMemory = {}
 WarKamikazeMemory['message'] = None
-WarKamikazeMemory['tick'] = 0
-WarKamikazeMemory['radius_bomb'] = 40
+WarKamikazeMemory['radiusBomb'] = 40
 
 """
     Détermine l'angle entre l'unité courante et le percept.
