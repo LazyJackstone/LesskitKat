@@ -90,20 +90,59 @@ class AlertState :
         return idle() # TODO :  Add Médéric Part
 
 def reflexes():
-    #sendMessageToBases("STATUS", ["Base"])
-    #if getHealth() < (maxHealth()/25)*100 :
-    #    actionWarBase.nextState = HealingState
+    memory["NbTickFromStart"] = memory["NbTickFromStart"] + 1
+    percepts = getPerceptsAllies()
+    if len(percepts) > 0:
+        for percept in percepts :
+            if isRocketLauncher(percept):
+                if memory["ListIDRocketLauncher"] is None :
+                    memory["ListIDRocketLauncher"] = percept.getID()
+                else :
+                    if percept.getID() not in memory["ListIDRocketLauncher"] :
+                        memory["ListIDRocketLauncher"].append(percept.getID())
+
+            if isExplorer(percept):
+                if memory["ListIDExplorer"] is None :
+                    memory["ListIDExplorer"] = percept.getID()
+                else :
+                    if percept.getID() not in memory["ListIDExplorer"] :
+                        memory["ListIDExplorer"].append(percept.getID())
+
+            if isKamikaze(percept):
+                if memory["ListIDKamikaze"] is None :
+                    memory["ListIDKamikaze"] = percept.getID()
+                else :
+                    if percept.getID() not in memory["ListIDKamikaze"] :
+                        memory["ListIDKamikaze"].append(percept.getID())
+
+            if isEngineer(percept):
+                if memory["ListIDEngineer"] is None :
+                    memory["ListIDEngineer"] = percept.getID()
+                else :
+                    if percept.getID() not in memory["ListIDEngineer"] :
+                        memory["ListIDEngineer"].append(percept.getID())
+
+
+    if memory["NbTickFromStart"] == 2:
+        for explorerID in memory["ListIDExplorer"]:
+            sendMessage(explorerID, "INFORM", ["BaseID"])
+
     messages = getMessages()
     if len(messages) > 0 :
         for message in messages :
-            if message.getMessage()=="ASK" :
-                if message.getContent()[0]=="Where are you" :
+            if message.getMessage() == "ASK" :
+                if message.getContent()[0] == "Where are you" :
                     setDebugString("Here")
-                    reply(message, "INFORM", ["Here"])
+                    reply(message, "INFORM", ["Here"]) #TODO : Ajouter sauvegarde de la position base enemie
+            if message.getMessage() == "INFORM":
+                if message.getContent()[0] == "EnemyBase":
+                    for rocketLauncherID in memory["ListIDRocketLauncher"]:
+                        attackData = determinateAttacksAngle(float(message.getContent()[2]), float(message.getContent()[3]), message.getAngle(), message.getDistance())
+                        sendMessage(rocketLauncherID, "ORDER",["EnemyBase", str(message.getContent()[1]), str(attackData[0]), str(attackData[1])])
 
-    #percepts = getPerceptsEnemies()
-    #if len(percepts) > 0 :
-    #    actionWarBase.nextState = AlertState
+                    for rocketLauncherID in memory["ListIDKamikaze"]:
+                        attackData = determinateAttacksAngle(float(message.getContent()[2]), float(message.getContent()[3]), message.getAngle(), message.getDistance())
+                        sendMessage(rocketLauncherID, "ORDER",["EnemyBase", str(message.getContent()[1]), str(attackData[0]), str(attackData[1])])
 
     if isBlocked() :
         RandomHeading()
@@ -153,6 +192,11 @@ actionWarBase.nextState = IdleState
 actionWarBase.currentState = None
 
 memory={}
+memory["NbTickFromStart"] = 0
+memory["ListIDExplorer"] = []
+memory["ListIDRocketLauncher"] = []
+memory["ListIDKamikaze"] = []
+memory["ListIDEngineer"] = []
 """
 memory["NbUnitPreviousTick"] = 0
 memory["NbUnit"] = 0

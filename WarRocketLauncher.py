@@ -1,6 +1,5 @@
 import math
-#TODO : Add Send message when Enemy Base destroyed
-#TODO: Finir la communication Group : Ordre Base ne peut être interrompu/ Request explorer possiblement interuptible.
+#TODO: Check Triangulation // Distance
 class SearchFoeState(object):
     @staticmethod
     def execute():
@@ -51,73 +50,17 @@ class ReloadingState(object): #TODO add resume firing on targeted if setted
 
         return reloadWeapon()
 
-class WiggleState(object):
-    @staticmethod
-    def execute():
-        setDebugString("WiggleState")
-        if (isBlocked()) :
-            RandomHeading()
-        return move()
-
-class FollowOrderState(object): #TODO : FINIR getting info
-    @staticmethod
-    def execute() :
-        setDebugString("Following Order")
-        messages = getMessages()
-        if len(messages) > 0 :
-            for message in messages :
-                if message.getMessage() == "ORDER" :
-                    if message.getContent()[0] == "Travel" :
-                        movingData = determinateAttacksAngle(float(message.getContent()[1]), float(message.getContent()[2]), message.getAngle(), message.getDistance())
-                        setHeading(movingData[0])
-                        return move()
-                    else :
-                        if message.getContent()[1] == "Fire" :
-                            if isReloaded():
-                                shootingData = determinateAttacksAngle(float(message.getContent()[1]), float(message.getContent()[2]), message.getAngle(), message.getDistance())
-                                setHeading(shootingData[0])
-                                return fire()
-                            else :
-                                return reloadWeapon()
-
-        else :
-            #TODO :  LeaveGroup + return SearchFoeState
-            actionWarRocketLauncher.nextState = FollowOrderState
-            return move()
-
-# TODO : Add send message when percept ennemy to other rl which will come to help if they are not busy.
-# TODO : Add gestion refus grouping
-# TODO : Add when receiving order from base attack destination given without interruption possible
 def reflexes() :
     #sendMessageToBases("STATUS", ["RocketLauncher"])
     messages = getMessages()
     for message in messages :
-        if message.getMessage() == "REQUEST" :
-            if message.getContent()[0] == "Attack Enemy Base" : #NOTE : DEPRECATED
-                memory["EnemyBaseAngleFromBase"] = float(message.getContent()[2])#*
-                memory["EnemyBaseDistanceFromBase"] = float(message.getContent()[3])#*
+        if message.getMessage() == "ORDER" :
+            if message.getContent()[0] == "EnemyBase" :
                 memory["EnemyBaseID"] = message.getContent()[1]
-                actionWarRocketLauncher.nextState = FollowOrderState
-                enemyBaseData = determinateAttacksAngle( memory["EnemyBaseAngleFromBase"], memory["EnemyBaseDistanceFromBase"], message.getAngle(), message.getDistance())
+                enemyBaseData = determinateAttacksAngle( float(message.getContent()[2]), float(message.getContent()[3]), message.getAngle(), message.getDistance())
                 setHeading(enemyBaseData[0])
                 memory["EnemyBaseDistance"] = enemyBaseData[1]
-
-            if message.getContent()[0] == "Group" :
-                if "Group" not in memory :
-                    memory["Group"] = message.getContent()[1]
-                    reply(message, "INFORM", ["OK", "RocketLauncher"])
-                else :
-                    reply(message, "INFORM", ["BUSY"])
-
-            if message.getContent()[0] == "Join":
-                requestRole(message.getContent()[1], "Bidder")
-                #determinateAttacksAngle()
-                setHeading(message.getAngle()) # TODO Add triangulation
-                actionWarRocketLauncher.nextState = FollowOrderState
-
-        if message.getMessage() == "INFORM":
-            if message.getContent()[0] == "Here":
-                memory["AllyBaseAngle"] = message.getAngle()
+                #TODO : Add switch d'etat
 
     if isBlocked():
         RandomHeading()
