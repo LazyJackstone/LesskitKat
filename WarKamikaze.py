@@ -22,6 +22,8 @@ def reflexes():
     """Reflexes."""
     if isBlocked():
         RandomHeading()
+
+    # Attaque la base si elle est perçue
     for base in getPerceptsEnemiesWarBase():
     	if base.getDistance() < WarKamikazeMemory['radiusBomb']:
     		return fire()
@@ -37,6 +39,7 @@ class WiggleState(object):
         setDebugString("WiggleState")
         messages = getMessages()
         for message in messages:
+            # Si on recoit un ordre d'attaque de la base
             if message.getMessage() == "ORDER":
                 if message.getContent()[0] == "EnemyBase":
                     actionWarKamikaze.nextState = OffensiveState
