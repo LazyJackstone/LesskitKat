@@ -49,9 +49,7 @@ class SearchFoodState(object):
                                 memory["AngleToFood"] = foodData[0]
                                 setHeading(memory["AngleToFood"])
 
-            if "AngleToFood" not in memory :
-                setRandomHeading(30)
-            else :
+            if "AngleToFood" in memory :
                 memory["DistanceToFood"]=memory["DistanceToFood"] - getSpeed()
 
             return move()
