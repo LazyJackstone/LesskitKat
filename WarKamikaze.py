@@ -37,10 +37,11 @@ class WiggleState(object):
         setDebugString("WiggleState")
         messages = getMessages()
         for message in messages:
-            if message.getMessage() == "EnemyBaseHere":
-                actionWarKamikaze.nextState = OffensiveState
-                WarKamikazeMemory['message'] = message
-                return idle()
+            if message.getMessage() == "ORDER":
+                if message.getContent()[0] == "EnemyBase":
+                    actionWarKamikaze.nextState = OffensiveState
+                    WarKamikazeMemory['message'] = message
+                    return idle()
         return move()
 
 
@@ -57,7 +58,7 @@ class OffensiveState(object):
         # Va vers la base ennemie si on lui envoie un ordre d'attaque
         if message is not None:
             # On détermine l'angle d'attaque
-            anglePercept = float(message.getContent()[1]); distancePercept = float(message.getContent()[0])
+            anglePercept = float(message.getContent()[2]); distancePercept = float(message.getContent()[3])
             angleMessage = message.getAngle(); distanceMessage = message.getDistance()
             setHeading(determinateAttacksAngle(anglePercept, distancePercept, angleMessage, distanceMessage))
 
