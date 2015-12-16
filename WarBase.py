@@ -4,6 +4,8 @@ class IdleState(object): #TODO : Add when base should eat because low health.
     def execute():
         setDebugString("Creating")
         actionWarBase.nextState= IdleState
+
+        return idle()
         """
         memory["NbUnitPreviousTick"] = memory["NbUnit"]
         memory["NbUnit"] = 0
@@ -66,31 +68,34 @@ class IdleState(object): #TODO : Add when base should eat because low health.
                 actionWarBase.nextState = HealingState
                 return createEngineer()
         """
-        return idle()
-class HealingState :
+
+
+class HealingState(object) :
     @staticmethod
     def execute() :
         return idle()
 
-class AlertState :
+
+class AlertState(object):
+
     @staticmethod
     def execute() :
-        percepts = getPerceptsEnemies()
-        if len(percepts) > 0 :
-            actionWarBase.nextState = AlertState
-        else :
-            messages = getMessages()
-            if len (messages) > 0 :
-                for message in messages :
-                    if message.getMessage() == "STATUS" :
-                        if message.getContent()[0] == "ALERT" :
-                            actionWarBase.nextState = AlertState
+        setDebugString('AlertState')
+        actionWarBase.nextState = AlertState
+        # Si la base est assez soignée
+        if getHealth() > getMaxHealth() * 0.8:
+            actionWarBase.nextState = IdleState
+            return idle()
 
+        # Envoie message aux explorers pour retourner a la base
+        for explorerID in memory["ListIDExplorer"]:
+            sendMessage(explorerID, "ORDER",["BackBase"])
 
-        return idle() # TODO :  Add Médéric Part
+        return eat()
 
 def reflexes():
     memory["NbTickFromStart"] = memory["NbTickFromStart"] + 1
+
     #NOTE: Add Unit in percept range in Database
     percepts = getPerceptsAllies()
     if len(percepts) > 0:
@@ -177,6 +182,10 @@ def reflexes():
                                 memory["ListIDBase"].append(message.getSenderID())
 
                     reply(message, "INFORM", ["BaseID"])
+
+    # AlertState si la base perd de la vie
+    if getHealth() < getMaxHealth() * 0.80:
+        actionWarBase.nextState = AlertState
 
     if isBlocked() :
         RandomHeading()

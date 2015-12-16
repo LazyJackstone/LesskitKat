@@ -121,6 +121,10 @@ def reflexes():
             if message.getMessage() == "INFORM":
                 if message.getContent()[0] == "BaseID":
                     memory["BaseID"] = message.getSenderID()
+            if message.getMessage() == "ORDER":
+                if message.getContent()[0] == "BackBase":
+                    if getNbElementsInBag() >= 2:
+                        actionWarExplorer.nextState = GoHomeState
 
     percepts = getPerceptsEnemiesWarBase()
     if len(percepts) > 0 : #TODO : Add choose one + send data to bases
