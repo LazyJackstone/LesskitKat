@@ -139,9 +139,9 @@ def reflexes():
                         attackData = determinateAttacksAngle(float(message.getContent()[2]), float(message.getContent()[3]), message.getAngle(), message.getDistance())
                         sendMessage(rocketLauncherID, "ORDER",["EnemyBase", str(message.getContent()[1]), str(attackData[0]), str(attackData[1])])
 
-                    for rocketLauncherID in memory["ListIDKamikaze"]:
+                    for kamikazeID in memory["ListIDKamikaze"]:
                         attackData = determinateAttacksAngle(float(message.getContent()[2]), float(message.getContent()[3]), message.getAngle(), message.getDistance())
-                        sendMessage(rocketLauncherID, "ORDER",["EnemyBase", str(message.getContent()[1]), str(attackData[0]), str(attackData[1])])
+                        sendMessage(kamikazeID, "ORDER",["EnemyBase", str(message.getContent()[1]), str(attackData[0]), str(attackData[1])])
 
     if isBlocked() :
         RandomHeading()
