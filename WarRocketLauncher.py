@@ -73,6 +73,9 @@ class TravelToEnemyBaseState(object):
             return move()
 
 def reflexes() :
+    if "BaseID" not in memory :
+        sendMessageToBases("INFORM", ["Type", "RocketLauncher"])
+
     messages = getMessages()
     for message in messages :
         if message.getMessage() == "ORDER" :
@@ -130,3 +133,4 @@ def calculateCoord(angle, rayon):
 actionWarRocketLauncher.nextState = SearchFoeState
 actionWarRocketLauncher.currentState = None
 memory={}
+memory["NbTickFromStart"] = 0

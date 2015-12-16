@@ -112,6 +112,8 @@ class GoHomeState(object):
                 return idle()
 
 def reflexes():
+    if "BaseID" not in memory :
+        sendMessageToBases("INFORM", ["Type", "Explorer"])
 
     messages = getMessages()
     if len(messages) > 0:
@@ -122,8 +124,10 @@ def reflexes():
 
     percepts = getPerceptsEnemiesWarBase()
     if len(percepts) > 0 : #TODO : Add choose one + send data to bases
-        sendMessage(memory["BaseID"], "INFORM",["EnemyBase", str(percepts[0].getID()), str(percepts[0].getAngle()), str(percepts[0].getDistance()), str(percepts[0].getHealth())]) #id + angle + distance + vie
-
+        if "BaseID" in memory:
+            sendMessage(memory["BaseID"], "INFORM",["EnemyBase", str(percepts[0].getID()), str(percepts[0].getAngle()), str(percepts[0].getDistance()), str(percepts[0].getHealth())]) #id + angle + distance + vie
+        else :
+            print "Base Not linked"#actionWarExplorer.nextState = IdleState
     if isBlocked():
         RandomHeading()
 
@@ -131,6 +135,7 @@ def reflexes():
 
 
 def actionWarExplorer():
+
     result = reflexes() # Reflexes
     if result:
         return result

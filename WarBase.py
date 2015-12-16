@@ -91,6 +91,7 @@ class AlertState :
 
 def reflexes():
     memory["NbTickFromStart"] = memory["NbTickFromStart"] + 1
+    #NOTE: Add Unit in percept range in Database
     percepts = getPerceptsAllies()
     if len(percepts) > 0:
         for percept in percepts :
@@ -122,10 +123,6 @@ def reflexes():
                     if percept.getID() not in memory["ListIDEngineer"] :
                         memory["ListIDEngineer"].append(percept.getID())
 
-
-    for explorerID in memory["ListIDExplorer"]:
-        sendMessage(explorerID, "INFORM", ["BaseID"])
-
     messages = getMessages()
     if len(messages) > 0 :
         for message in messages :
@@ -142,6 +139,44 @@ def reflexes():
                     for rocketLauncherID in memory["ListIDKamikaze"]:
                         attackData = determinateAttacksAngle(float(message.getContent()[2]), float(message.getContent()[3]), message.getAngle(), message.getDistance())
                         sendMessage(rocketLauncherID, "ORDER",["EnemyBase", str(message.getContent()[1]), str(attackData[0]), str(attackData[1])])
+
+                if message.getContent()[0] == "Type" :
+                    if message.getContent()[1] == "RocketLauncher":
+                        if memory["ListIDRocketLauncher"] is None :
+                            memory["ListIDRocketLauncher"] = message.getSenderID()
+                        else :
+                            if message.getSenderID() not in memory["ListIDRocketLauncher"] :
+                                memory["ListIDRocketLauncher"].append(message.getSenderID())
+
+                    if message.getContent()[1] == "Explorer":
+                        if memory["ListIDExplorer"] is None :
+                            memory["ListIDExplorer"] = message.getSenderID()()
+                        else :
+                            if message.getSenderID() not in memory["ListIDExplorer"] :
+                                memory["ListIDExplorer"].append(message.getSenderID())
+
+                    if message.getContent()[1] == "Kamikaze":
+                        if memory["ListIDKamikaze"] is None :
+                            memory["ListIDKamikaze"] = message.getSenderID()
+                        else :
+                            if message.getSenderID() not in memory["ListIDKamikaze"] :
+                                memory["ListIDKamikaze"].append(message.getSenderID())
+
+                    if message.getContent()[1] == "Engineer":
+                        if memory["ListIDEngineer"] is None :
+                            memory["ListIDEngineer"] = message.getSenderID()
+                        else :
+                            if message.getSenderID() not in memory["ListIDEngineer"] :
+                                memory["ListIDEngineer"].append(message.getSenderID())
+
+                    if message.getContent()[1] == "Base":
+                        if memory["ListIDBase"] is None :
+                            memory["ListIDBase"] = message.getSenderID()
+                        else :
+                            if message.getSenderID() not in memory["ListIDBase"] :
+                                memory["ListIDBase"].append(message.getSenderID())
+
+                    reply(message, "INFORM", ["BaseID"])
 
     if isBlocked() :
         RandomHeading()
@@ -196,6 +231,7 @@ memory["ListIDExplorer"] = []
 memory["ListIDRocketLauncher"] = []
 memory["ListIDKamikaze"] = []
 memory["ListIDEngineer"] = []
+memory["ListIDBase"] = []
 """
 memory["NbUnitPreviousTick"] = 0
 memory["NbUnit"] = 0
