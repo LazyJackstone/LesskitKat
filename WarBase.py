@@ -123,9 +123,8 @@ def reflexes():
                         memory["ListIDEngineer"].append(percept.getID())
 
 
-    if memory["NbTickFromStart"] == 2:
-        for explorerID in memory["ListIDExplorer"]:
-            sendMessage(explorerID, "INFORM", ["BaseID"])
+    for explorerID in memory["ListIDExplorer"]:
+        sendMessage(explorerID, "INFORM", ["BaseID"])
 
     messages = getMessages()
     if len(messages) > 0 :

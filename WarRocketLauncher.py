@@ -50,6 +50,28 @@ class ReloadingState(object): #TODO add resume firing on targeted if setted
 
         return reloadWeapon()
 
+class TravelToEnemyBaseState(object):
+    @staticmethod
+    def execute() :
+        setDebugString("OMW to Enemy Base")
+        percepts= getPerceptsEnemiesWarBase()
+        targetedBasePercept= None
+        if len(percepts) > 0 :
+            for percept in percepts :
+                if str(percept.getID()) == memory["EnemyBaseID"]:
+                    targetedBasePercept= percept
+
+            if targetedBasePercept is not None :
+                actionWarRocketLauncher.nextState= FiringState
+                setHeading(percept.getAngle())
+                return idle()
+            else :
+                actionWarRocketLauncher.nextState= TravelToEnemyBaseState
+                return move() #TODO setHeading
+        else :
+            actionWarRocketLauncher.nextState= TravelToEnemyBaseState
+            return move()
+
 def reflexes() :
     #sendMessageToBases("STATUS", ["RocketLauncher"])
     messages = getMessages()
@@ -60,7 +82,7 @@ def reflexes() :
                 enemyBaseData = determinateAttacksAngle( float(message.getContent()[2]), float(message.getContent()[3]), message.getAngle(), message.getDistance())
                 setHeading(enemyBaseData[0])
                 memory["EnemyBaseDistance"] = enemyBaseData[1]
-                #TODO : Add switch d'etat
+                actionWarRocketLauncher.nextState = TravelToEnemyBaseState 
 
     if isBlocked():
         RandomHeading()
