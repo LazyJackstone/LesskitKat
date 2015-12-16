@@ -73,7 +73,6 @@ class TravelToEnemyBaseState(object):
             return move()
 
 def reflexes() :
-    #sendMessageToBases("STATUS", ["RocketLauncher"])
     messages = getMessages()
     for message in messages :
         if message.getMessage() == "ORDER" :
@@ -82,7 +81,7 @@ def reflexes() :
                 enemyBaseData = determinateAttacksAngle( float(message.getContent()[2]), float(message.getContent()[3]), message.getAngle(), message.getDistance())
                 setHeading(enemyBaseData[0])
                 memory["EnemyBaseDistance"] = enemyBaseData[1]
-                actionWarRocketLauncher.nextState = TravelToEnemyBaseState 
+                actionWarRocketLauncher.nextState = TravelToEnemyBaseState
 
     if isBlocked():
         RandomHeading()
@@ -113,9 +112,8 @@ def determinateAttacksAngle(anglePercept, distancePercept, angleMessage, distanc
     vectorCoord1 = calculateCoord(anglePercept, distancePercept)
     vectorCoord2 = calculateCoord(angleMessage, distanceMessage)
     vectorResult = [vectorCoord1[0] + vectorCoord2[0], vectorCoord1[1] + vectorCoord2[1]]
-    distance = math.sqrt(vectorResult[0]**2 + vectorResult[1]**2)
-    angleRadian = math.atan2(vectorResult[1], vectorResult[0])
-    angle = math.degrees(angleRadian)
+    distance = math.sqrt(distancePercept * distancePercept + distanceMessage*distanceMessage)
+    angle = math.degrees(math.atan2(vectorResult[1], vectorResult[0]))
 
     return [angle, distance]
 
